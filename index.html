@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>TupperAi – Personal NS Tupper Family Chatbot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.4s ease, color 0.4s ease;
+            touch-action: manipulation;
+            background: #121212;
+            color: #ddd;
+        }
+        body.light { 
+            background: linear-gradient(135deg, #f0f2f5, #d9e2ec); 
+            color: #333; 
+        }
+        header {
+            background: linear-gradient(to right, #1a252f, #0f1a22);
+            color: white;
+            padding: 1.2rem;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+        body.light header { 
+            background: linear-gradient(to right, #2c3e50, #1a252f); 
+        }
+        header h1 { 
+            margin-bottom: 0.4rem; 
+            font-size: 2.1rem; 
+            font-weight: 700; 
+            display: inline-block;
+        }
+        .copyright {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin: 0 8px;
+            vertical-align: middle;
+        }
+        header p { font-size: 1rem; opacity: 0.95; }
+        #chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 920px;
+            margin: 1rem auto;
+            width: 100%;
+            background: #1e1e1e;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            height: calc(100vh - 140px);
+        }
+        body.light #chat-container { background: white; }
+        #chatbox {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+            background: #252525;
+            -webkit-overflow-scrolling: touch;
+            font-size: 1.05rem;
+            line-height: 1.5;
+        }
+        body.light #chatbox { background: #fafbfc; }
+        #chatbox.small { font-size: 0.95rem; }
+        #chatbox.medium { font-size: 1.05rem; }
+        #chatbox.large { font-size: 1.22rem; }
+        .message {
+            max-width: 85%;
+            padding: 1.1rem 1.4rem;
+            border-radius: 20px;
+            word-wrap: break-word;
+            white-space: pre-line;
+        }
+        .user { align-self: flex-end; background: #0084ff; color: white; border-bottom-right-radius: 4px; }
+        .bot { align-self: flex-start; background: #333; color: #eee; border-bottom-left-radius: 4px; }
+        body.light .bot { background: #e5e5ea; color: #222; }
+        .message img {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-top: 0.8rem;
+            display: block;
+        }
+        #input-area {
+            display: flex;
+            padding: 1rem;
+            border-top: 1px solid #444;
+            background: #1e1e1e;
+            gap: 8px;
+            align-items: center;
+        }
+        body.light #input-area { 
+            background: #f8f9fa; 
+            border-top: 1px solid #ddd; 
+        }
+        #input {
+            flex: 1;
+            padding: 1.1rem 1.4rem;
+            border: 1px solid #555;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            outline: none;
+            background: #333;
+            color: #eee;
+            min-height: 52px;
+        }
+        body.light #input { 
+            background: white; 
+            color: #333; 
+            border-color: #ccc; 
+        }
+        #input:focus { border-color: #0084ff; box-shadow: 0 0 0 4px rgba(0, 132, 255, 0.18); }
+        #send, #voice-btn, #attach-btn {
+            width: 52px;
+            height: 52px;
+            background: #0084ff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        #send {
+            width: auto;
+            padding: 0 1.8rem;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            min-width: 70px;
+        }
+        #voice-btn.listening {
+            background: #ff3b30;
+            transform: scale(1.1);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+        }
+        #voice-btn:hover, #attach-btn:hover, #send:hover { 
+            background: #006edc; 
+            transform: scale(1.05); 
+        }
+        #preview-area {
+            padding: 0.5rem 1rem;
+            background: inherit;
+            text-align: center;
+        }
+        #preview-img {
+            max-height: 120px;
+            border-radius: 8px;
+            border: 1px solid #555;
+            display: none;
+        }
+        body.light #preview-img { border-color: #ccc; }
+        .toggle-btn {
+            position: fixed;
+            padding: 14px 20px;
+            background: #0084ff;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0,132,255,0.35);
+            z-index: 1000;
+            font-size: 1.05rem;
+            transition: all 0.3s;
+        }
+        .toggle-btn:hover { background: #006edc; transform: scale(1.08); }
+        body.light .toggle-btn { background: #0084ff; }
+        body.dark .toggle-btn { background: #555; }
+        #theme-toggle { top: 15px; right: 15px; }
+        #font-toggle { top: 75px; right: 15px; }
+        @media (max-width: 768px) {
+            .message { max-width: 90%; }
+            #chatbox { padding: 1.2rem; }
+            header h1 { font-size: 1.9rem; }
+        }
+    </style>
+</head>
+<body class="dark">
+    <button id="theme-toggle" class="toggle-btn">☀️ Light</button>
+    <button id="font-toggle" class="toggle-btn">🔠 Medium</button>
+    <header>
+        <h1>TupperAi<span class="copyright"> © Copyright 2026 ©</span></h1>
+        <p>Personal NS Tupper Family • Kings County • Fox Mountain • Full Family Tree</p>
+    </header>
+   
+    <div id="chat-container">
+        <div id="chatbox" class="medium">
+            <div class="message bot">
+                Welcome to TupperAi! 👋
+            </div>
+        </div>
+        <div id="preview-area">
+            <img id="preview-img" alt="Image preview">
+        </div>
+        <div id="input-area">
+            <input type="text" id="input" placeholder="Who is?" autocomplete="off">
+            <input type="file" id="file-input" accept="image/*" style="display: none;">
+            <button id="attach-btn" title="Attach image">📎</button>
+            <button id="voice-btn" title="Voice input (microphone)">🎤</button>
+            <button id="send">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatbox = document.getElementById('chatbox');
+        const input = document.getElementById('input');
+        const sendBtn = document.getElementById('send');
+        const voiceBtn = document.getElementById('voice-btn');
+        const attachBtn = document.getElementById('attach-btn');
+        const fileInput = document.getElementById('file-input');
+        const previewImg = document.getElementById('preview-img');
+        const themeToggle = document.getElementById('theme-toggle');
+        const fontToggle = document.getElementById('font-toggle');
+        let isDark = true;
+        let fontSizeIndex = 1;
+        const fontSizes = ['small', 'medium', 'large'];
+        const fontLabels = ['🔠 Small', '🔠 Medium', '🔠 Large'];
+        let attachedImageData = null;
+
+        // Voice recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-CA';
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                let final = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        final += event.results[i][0].transcript;
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                input.value = final + interim;
+                input.placeholder = isListening ? "Listening... (speak now)" : "Who is?";
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                voiceBtn.classList.remove('listening');
+                input.placeholder = "Who is?";
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech error:', event.error);
+                isListening = false;
+                voiceBtn.classList.remove('listening');
+                input.placeholder = event.error === 'not-allowed' 
+                    ? "Microphone permission denied" 
+                    : "Voice input error – try again";
+            };
+        }
+
+        voiceBtn.addEventListener('click', () => {
+            if (!recognition) {
+                alert("Voice input not supported in this browser.\nTry Chrome or Edge!");
+                return;
+            }
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+                isListening = true;
+                voiceBtn.classList.add('listening');
+                input.placeholder = "Listening... (speak now)";
+                input.focus();
+            }
+        });
+
+        // Image attach
+        attachBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                attachedImageData = e.target.result;
+                previewImg.src = attachedImageData;
+                previewImg.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        });
+
+        const knowledge = {
+            drake: "Drake Tupper — you! Born July 7, 2014. Son of Dustin Tupper.",
+            gray: "Gray Tupper — born January 11, 2008 (age 18). Son of Dustin Tupper.",
+            dustin: "Dustin Tupper — born 1989 (age 36). Father of Gray (2008) and Drake (2014).",
+            neil: "Neil Carman Tupper — born February 10, 1936, died June 20, 2022 (age 86). Married 1956.",
+            dave: "Dave Tupper — born 1962. Married Marlene in 1988. Father of Dustin and Kyle.",
+            marlene: "Marlene Tupper (maiden name Adey) — born 1964. Married Dave in 1988. Has three brothers: Wayne, Brian, Kevin Adey.",
+            kyle: "Kyle Tupper — born 1992. Works in trucking and heavy equipment. Father of five children (your cousins).",
+            adey: "Marlene’s maiden name is Adey. She has three brothers: Wayne Adey, Brian Adey, and Kevin Adey.",
+            wayne: "Wayne Adey — Marlene’s oldest brother.",
+            brian: "Brian Adey — one of Marlene’s brothers.",
+            kevin: "Kevin Adey — Marlene’s youngest brother.",
+            cheryl: "Cheryl Tupper (Hiltz) — born 1957. Married Randy Hiltz in 1979.",
+            sonja: "Sonja Tupper (Stewart) — born 1959. Married Ron Stewart in 1982.",
+            tamara: "Tamara Tupper (Field) — born 1961. Married Sam Field in 1984.",
+            billiejo: "Billiejo Tupper (Keddy) — born 1966. Married Ben Keddy in 1989.",
+            crystal: "Crystal Tupper (Allen) — born 1968. Married Wade Allen in 1991.",
+            heidi: "Heidi Tupper (Schofield) — born 1970. Married Josh Schofield in 1995. Runs Fox Mountain Camping Park.",
+            virginia: "Virginia Tupper (Fynes) — born 1973. Married in 1997.",
+            troy: "Troy Tupper — born 1975. Married Michelle in 2000.",
+            shannon: "Neil Shannon Tupper — born 1978. Married Lyndsay in 2003.",
+            campground: "Fox Mountain Camping Park — created by Neil. Now run by Heidi Tupper.",
+            family: "Dustin has Gray and Drake. Kyle has five children.",
+            sircharles: "Sir Charles Tupper — born 1821, died 1915. Married 1846.",
+            eliakim: "Eliakim Tupper — born 1742, died 1810. Married 1765.",
+            thomas: "Thomas Tupper — born 1578, died 1676. Married 1634.",
+            tree: "📋 Tupper Family Tree (Kings County, NS)\n\n" +
+                  "Neil Carman Tupper (1936–2022) m.1956\n" +
+                  "├── Cheryl (b.1957) m.1979 Randy Hiltz\n" +
+                  "├── Sonja (b.1959) m.1982 Ron Stewart\n" +
+                  "├── Tamara (b.1961) m.1984 Sam Field\n" +
+                  "├── Dave (b.1962) m.1988 Marlene Adey\n" +
+                  "│ ├── Dustin (b.1989)\n" +
+                  "│ │ ├── Gray (b.2008)\n" +
+                  "│ │ └── Drake (b.2014) ← YOU!\n" +
+                  "│ └── Kyle (b.1992)\n" +
+                  "│     └── five children\n" +
+                  "├── Billiejo (b.1966) m.1989 Ben Keddy\n" +
+                  "├── Crystal (b.1968) m.1991 Wade Allen\n" +
+                  "├── Heidi (b.1970) m.1995 Josh Schofield ← runs Fox Mountain Campground\n" +
+                  "├── Virginia (b.1973) m.1997 Fynes\n" +
+                  "├── Troy (b.1975) m.2000 Michelle\n" +
+                  "└── Shannon (b.1978) m.2003 Lyndsay\n\n" +
+                  "Marlene's brothers (Adey):\nWayne • Brian • Kevin"
+        };
+
+        function getResponse(q) {
+            q = q.toLowerCase().trim();
+            if (q.includes('tree') || q.includes('family tree') || q.includes('show me the family')) {
+                return knowledge.tree;
+            }
+            if (q.includes('kyle') && (q.includes('kid') || q.includes('child') || q.includes('son') || q.includes('daughter') || q.includes('five'))) {
+                return "Kyle Tupper has five children (your cousins). Specific names and details are private/family-only.";
+            }
+            if (q.includes('adey') || q.includes('marlene brother')) return knowledge.adey;
+            if (q.includes('wayne')) return knowledge.wayne;
+            if (q.includes('brian')) return knowledge.brian;
+            if (q.includes('kevin')) return knowledge.kevin;
+            if (q.includes('gray')) return knowledge.gray;
+            if (q.includes('drake') || q.includes('me') || q.includes('i am')) return knowledge.drake;
+            if (q.includes('dustin')) return knowledge.dustin;
+            if (q.includes('kyle')) return knowledge.kyle;
+            if (q.includes('heidi')) return knowledge.heidi;
+            if (q.includes('neil') || q.includes('grandpa')) return knowledge.neil;
+            if (q.includes('dave') || q.includes('dad')) return knowledge.dave;
+            if (q.includes('marlene') || q.includes('mom')) return knowledge.marlene;
+            if (q.includes('married') || q.includes('marriage')) {
+                if (q.includes('neil')) return "Neil married in 1956.";
+                if (q.includes('dave') || q.includes('dad')) return "Dave married Marlene in 1988.";
+                if (q.includes('marlene')) return "Marlene married Dave in 1988.";
+                if (q.includes('heidi')) return "Heidi married Josh in 1995.";
+                return "Who are you asking about?";
+            }
+            if (q.includes('died') || q.includes('death') || q.includes('passed')) {
+                if (q.includes('neil')) return "Neil died June 20, 2022 (born 1936).";
+                return "I have death years for Neil (2022), Sir Charles (1915), Eliakim (1810), and Thomas (1676).";
+            }
+            if (q.includes('born') || q.includes('birth')) {
+                if (q.includes('drake')) return knowledge.drake;
+                if (q.includes('gray')) return knowledge.gray;
+                return "Who are you asking about? (I can share birth years for many in the tree!)";
+            }
+            if (q.includes('hi') || q.includes('hey') || q.includes('hello')) return "Hey Drake! Ready to talk Tupper family? 😊";
+            if (q.includes('cheryl')) return knowledge.cheryl;
+            if (q.includes('sonja')) return knowledge.sonja;
+            if (q.includes('tamara')) return knowledge.tamara;
+            if (q.includes('billiejo') || q.includes('billie')) return knowledge.billiejo;
+            if (q.includes('crystal')) return knowledge.crystal;
+            if (q.includes('heidi')) return knowledge.heidi;
+            if (q.includes('virginia')) return knowledge.virginia;
+            if (q.includes('troy')) return knowledge.troy;
+            if (q.includes('shannon')) return knowledge.shannon;
+            if (q.includes('camp') || q.includes('fox') || q.includes('campground')) return knowledge.campground;
+            if (q.includes('sir charles')) return knowledge.sircharles;
+            if (q.includes('family') || q.includes('kids') || q.includes('children')) return knowledge.family;
+            return "Ask me about anyone in the family — try 'Who is Kyle?' or 'Show me the family tree'!";
+        }
+
+        function addMessage(text, className, imageSrc = null) {
+            const div = document.createElement('div');
+            div.className = `message ${className}`;
+            if (text) div.textContent = text;
+            if (imageSrc) {
+                const img = document.createElement('img');
+                img.src = imageSrc;
+                img.alt = "Uploaded image";
+                div.appendChild(img);
+            }
+            chatbox.appendChild(div);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        function sendMessage() {
+            const text = input.value.trim();
+            if (!text && !attachedImageData) return;
+            addMessage(text || "(image only)", 'user', attachedImageData);
+            input.value = '';
+            attachedImageData = null;
+            previewImg.style.display = 'none';
+            previewImg.src = '';
+            fileInput.value = '';
+            setTimeout(() => {
+                addMessage(getResponse(text || "image"), 'bot');
+            }, 400);
+        }
+
+        function toggleTheme() {
+            isDark = !isDark;
+            document.body.classList.toggle('dark', isDark);
+            document.body.classList.toggle('light', !isDark);
+            themeToggle.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+        }
+
+        function toggleFontSize() {
+            fontSizeIndex = (fontSizeIndex + 1) % 3;
+            chatbox.className = 'medium ' + fontSizes[fontSizeIndex];
+            fontToggle.textContent = fontLabels[fontSizeIndex];
+        }
+
+        themeToggle.addEventListener('click', toggleTheme);
+        fontToggle.addEventListener('click', toggleFontSize);
+        sendBtn.addEventListener('click', sendMessage);
+        input.addEventListener('keypress', e => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        chatbox.addEventListener('click', () => input.blur());
+    </script>
+</body>
+</html>
